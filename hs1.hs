@@ -1,8 +1,6 @@
-roots a b c  | (d > 0) = (x1,x2)
-             | (d == 0) = (x1, x2)
-			 | (d < 0) = error "No material roots"
-  where
-    d = b^2 - 4*a*c
-    ds = sqrt d
-    x1 = (-b + ds) / (2*a)	
-    x2 = (-b - ds) / (2*a)   
+quadrat a b c | (descr a b c < 0) = error "Can't find real roots"
+              | ((descr a b c >= 0) && (a /= 0)) = (rootOne a b c, rootTwo a b c)
+              | otherwise = error "It's not quadratic equation"
+descr a b c = b * b - 4 * a * c
+rootOne a b c = ((-b + sqrt(b * b - 4 * a * c)) / (2 * a))
+rootTwo a b c = ((-b - sqrt(b * b - 4 * a * c)) / (2 * a))
