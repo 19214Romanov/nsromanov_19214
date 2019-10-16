@@ -23,7 +23,7 @@ init' (x:xs) = x : init' xs
 
 reverse' :: [a] -> [a]
 reverse' [] = []
-reverse' (x:xs) = last' (x:xs) : reverse' (init' (x:xs))
+reverse' (xs) = last' (xs) : reverse' (init' (xs))
 
 length' :: [a] -> Int
 length' [] = 0
@@ -48,7 +48,7 @@ take' n (x:xs) | n /= 0 = x : take' (n-1) xs
                | otherwise = []
 
 splitAt' :: Int -> [a] -> ([a], [a])
-splitAt' n (x:xs) | n /= 0 = ((take' n (x:xs)), drop' n (x:xs))
+splitAt' n (xs) = ((take' n (xs)), drop' n (xs))
 
 null' :: [a] -> Bool
 null' [] = True
