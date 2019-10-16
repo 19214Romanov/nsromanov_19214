@@ -48,7 +48,8 @@ take' n (x:xs) | n /= 0 = x : take' (n-1) xs
                | otherwise = []
 
 splitAt' :: Int -> [a] -> ([a], [a])
-splitAt' n (xs) = ((take' n (xs)), drop' n (xs))
+splitAt' n xs | (length' xs) >= n = (take' n xs, drop' n xs)
+              | otherwise = (xs,[])
 
 null' :: [a] -> Bool
 null' [] = True
