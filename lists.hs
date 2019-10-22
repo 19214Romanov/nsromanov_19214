@@ -1,4 +1,4 @@
-get :: [a] -> Int -> a
+get :: [a] -> Integer -> a
 get [] _ = error "Index too large"
 get (x:xs) y  | y == 0 = x
               | otherwise = get xs (y-1)
