@@ -23,7 +23,7 @@ init' (x:xs) = x : init' xs
 
 reverse' :: [a] -> [a]
 reverse' [] = []
-reverse' (xs) = last' (xs) : reverse' (init' (xs))
+reverse' (x:xs) = append (reverse' xs) x
 
 length' :: [a] -> Integer
 length' [] = 0
