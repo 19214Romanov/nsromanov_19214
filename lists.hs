@@ -54,7 +54,7 @@ splitAt' n xs = (take' n xs, drop' n xs)
 
 null' :: [a] -> Bool
 null' [] = True
-null' (_:_) = False
+null' x = False
 
 elem' :: (Eq a) => [a] -> a -> Bool
 elem' [] _ = False
