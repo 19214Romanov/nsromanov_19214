@@ -39,19 +39,18 @@ concat' :: [a] -> [a] -> [a]
 concat' x [] = x
 concat' x (s:sys) = concat' (append x s) sys
 
-drop' :: Int -> [a] -> [a]
+drop' :: Integer -> [a] -> [a]
 drop' _ [] = []
 drop' n (x:xs) | n == 0 = x:xs
                | otherwise = drop' (n-1) xs
 
-take' :: Int -> [a] -> [a]
+take' :: Integer -> [a] -> [a]
 take' _ [] = []
 take' n (x:xs) | n /= 0 = x : take' (n-1) xs
                | otherwise = []
 
-splitAt' :: Int -> [a] -> ([a], [a])
-splitAt' n xs | (length' xs) >= n = (take' n xs, drop' n xs)
-              | otherwise = (xs,[])
+splitAt' :: Integer -> [a] -> ([a], [a])
+splitAt' n xs = (take' n xs, drop' n xs)
 
 null' :: [a] -> Bool
 null' [] = True
