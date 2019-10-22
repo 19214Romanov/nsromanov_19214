@@ -63,7 +63,7 @@ elem' (y:xs) x | y == x = True
 
 filter' :: (a -> Bool) -> [a] -> [a]
 filter' _ [] = []
-filter' test (x:xs) | test x == True = x:filter' test xs
+filter' test (x:xs) | test x = x:filter' test xs
                     | otherwise = filter' test xs
 
 map' :: (a -> b) -> [a] -> [b]
