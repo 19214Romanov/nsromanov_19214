@@ -30,9 +30,10 @@ reverse' xs = reverse'' xs []
 
 length' :: [a] -> Integer 
 length' xs  = length'' xs 0
-length'' :: [a] -> Integer -> Integer
-length'' [] n  = n
-length'' (x:xs) n = length'' xs (n + 1)
+         where
+         length'' :: [a] -> Integer -> Integer
+         length'' [] n  = n
+         length'' (x:xs) n = length'' xs (n + 1)
 
 append :: [a] -> a -> [a]
 append [] x = [x]
