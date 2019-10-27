@@ -22,8 +22,11 @@ init' [x] = []
 init' (x:xs) = x : init' xs
 
 reverse' :: [a] -> [a]
-reverse' [] = []
-reverse' (x:xs) = append (reverse' xs) x
+reverse' xs = reverse'' xs []
+         where
+         reverse'' :: [a] -> [a] -> [a]
+         reverse'' [] xs = xs
+         reverse'' (x:xs) ys = reverse'' xs (x : ys)
 
 length' :: [a] -> Integer 
 length' xs  = length'' xs 0
