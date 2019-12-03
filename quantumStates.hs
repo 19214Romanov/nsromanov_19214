@@ -11,7 +11,8 @@ instance Show (ComplexNumber) where
      show(ComplexNumber a (-1)) = show a ++ " - " ++ "i"
      show(ComplexNumber 0 b) = show b ++ "i"
      show(ComplexNumber a b) | b > 0 = show a ++ " + " ++ show b ++ "i"
-                             | b < 0 = show a ++ " - " ++ show (abs b) ++ "i"
+                             | otherwise = show a ++ " - " ++ show (abs b) ++ "i"
+
 
 instance Eq (ComplexNumber) where
      (ComplexNumber a1 b1) == (ComplexNumber a2 b2) = z1 == z2 where
@@ -23,51 +24,53 @@ instance Ord (ComplexNumber) where
          z1 = sqrt (fromIntegral(a1^2) + fromIntegral(b1^2))
          z2 = sqrt (fromIntegral(a2^2) + fromIntegral(b2^2))
 
+instance Num (ComplexNumber) where
+     negate (ComplexNumber a b) = ComplexNumber (-a)(-b)
+     (+) (ComplexNumber a1 b1) (ComplexNumber a2 b2) = (ComplexNumber (a1+a2) (b1+b2))
+     (*) (ComplexNumber a1 b1) (ComplexNumber a2 b2) = (ComplexNumber (a1*a2-b1*b2) (a1*b2+b1*a2))
+     abs (ComplexNumber a b) = ComplexNumber (abs a) (abs b)
+     signum (ComplexNumber a b) | a > 0 = 1
+                                | a == 0 = 0
+                                | otherwise = -1
+     fromInteger int = ComplexNumber int 0
+
 type StrMarker = String
-data QuantumState = QuantumState ComplexNumber StrMarker
+data QuantumState = ToQuantumState ComplexNumber StrMarker
 type Qubit = [QuantumState]
 
 instance Show (QuantumState) where
-     show (QuantumState a b) = "QuantumState " ++ show a ++ " " ++ show b
+     show (ToQuantumState a b) = "QuantumState " ++ show a ++ " " ++ show b
+
+--не знаю как заставить это работать, но fmap работает и без этого
+--instance Functor (QuantumState) where
+--     fmap f (ToQuantumState complex label) = ToQuantumState (f complex) label
 
 toList :: Qubit -> [ComplexNumber]
-toList [] = []
-toList ((QuantumState x _) : a) = x : toList a
+toList x = [complex | (ToQuantumState complex _) <- x]
 
 toLabelList :: Qubit -> [StrMarker]
-toLabelList [] = []
-toLabelList ((QuantumState _ t) : a) = t : toLabelList a
+toLabelList x = [marker | (ToQuantumState _ marker) <- x]
 
 fromList :: [ComplexNumber] -> [StrMarker] -> Qubit
-fromList [] _ = []
-fromList (x:xs) (t:ts) = (QuantumState x t) : fromList xs ts
+fromList x y = [(ToQuantumState complex txt) | complex <- x, txt <- y]
 
 toPairList :: Qubit -> [(ComplexNumber, StrMarker)]
-toPairList [] = []
-toPairList ((QuantumState cn sm):xs) = (cn, sm) : toPairList xs
+toPairList x = [(complex, marker) | (ToQuantumState complex marker) <- x]
 
 fromPairList :: [(ComplexNumber, StrMarker)] -> Qubit
-fromPairList [] = []
-fromPairList (((a),(b)):xs) = (QuantumState a b) : fromPairList xs
+fromPairList x = [(ToQuantumState complex marker) | (complex, marker) <- x]
 
---не ясно, что нужно скалярно умножить
---ведь мы имеем два списка, со множеством различных векторов
---если умножать больше двух векторов, то получится смешанное произведение (а это не факт, что получится именно скаляр)
---ЗАДАЧА НЕ ЯСНА
---scalarProduct :: Qubit -> Qubit -> Float
---scalarProduct (((a1),(_)):xs1) (((a2),(_)):xs2) = 
+scalarProduct :: Qubit -> Qubit -> ComplexNumber
+scalarProduct x y = foldr (\a b -> a + b) 0 [(complex1 * complex2)| (ToQuantumState complex1 _) <- x, (ToQuantumState complex2 _) <- y]
 
---entagle = осложнить (я понял, что нужно два Кубита слепить в один)
 entagle :: Qubit -> Qubit -> Qubit
-entagle [] [] = []
-entagle [] (y:ys) = y : entagle [] ys
-entagle (x:xs) (y:ys) = x : entagle xs (y:ys)
+entagle x y = [(ToQuantumState (complex1 * complex2) (marker1 ++ marker2)) | (ToQuantumState complex1 marker1) <- x, (ToQuantumState complex2 marker2) <- y]
 
 --Examples
 x1 = (ComplexNumber 5 1)
 x2 = (ComplexNumber (-5) (-1))
 x3 = (ComplexNumber 100 100)
-y1 = (QuantumState x1 "Fish")
-y2 = (QuantumState x2 "451 of Farengheit")
+y1 = (ToQuantumState x1 "Fish")
+y2 = (ToQuantumState x3 "451 of Farengheit")
 z1 = [y1, y2]
 pl1 = [(x1,"Fish"), (x2, "451 of Farengheit")]
