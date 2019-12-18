@@ -32,7 +32,7 @@ instance (Num a, Show a, Ord a, Eq a, Integral a) => Num (ComplexNumber a) where
      signum (ComplexNumber a b) | a > 0 = 1
                                 | a == 0 = 0
                                 | otherwise = -1
-     fromInteger int = ComplexNumber 0 0
+     fromInteger int = ComplexNumber (fromInteger int) 0
 
 type StrMarker = String
 data QuantumState a = ToQuantumState a StrMarker
