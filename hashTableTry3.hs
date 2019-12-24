@@ -21,16 +21,20 @@ fromList ::(Show k, Eq k) => [(k,v)] -> HashTable k v
 fromList arr = (foldl (\x (k,v) -> insert x k v) (defaultHashTable 2) arr) 
 
 insert :: (Show k, Eq k) => HashTable k v -> k -> v -> HashTable k v
-insert (HashTable arr size nowElements) key value = if (nowElements * 2 < size)  then HashTable ((take idHash arr) ++ ([(filter (\(k,v) -> k /= key) (arr !! idHash)) ++ [(key, value)]]) ++ drop (idHash + 1) arr) size (nowElements + 1)
-                                                     else insert (rehash (HashTable arr size nowElements)) key value
-                                                         where idHash = fromIntegral (hash (show key) size)
+insert (HashTable arr size nowElements) key value = 
+             if (nowElements * 2 < size)  then HashTable (a ++ ([(filter (\(k,v) -> k /= key) (arr !! idHash)) ++ [(key, value)]]) ++ b) size (nowElements + 1)
+                                                     else insert (rehash (HashTable arr size nowElements)) key value where 
+                                                             idHash = fromIntegral (hash (show key) size)
+                                                             (a,_:b) = splitAt idHash arr
+                                                             --a = fst time'
+                                                             --b = drop 1 (snd time')
                                                                                  
 
 
 rehash :: (Show k, Eq k) => HashTable k v -> HashTable k v
 rehash (HashTable elements size nowElements) = if (nowElements * 2 >= size) then (foldl (\arr (k,v) -> (insert arr k v)) newTable (concat elements))
                                                                                  else HashTable elements size nowElements where
-                                                                                                                             newTable = defaultHashTable (size * 2)
+                                                                                                         newTable = defaultHashTable (size * 2)
 
 main = do
      handle <- openFile "input.txt" ReadMode
@@ -43,8 +47,11 @@ clear :: HashTable k v -> HashTable k v
 clear (HashTable _ size _) = defaultHashTable size
 
 erase :: (Show k, Eq k) => HashTable k v -> k -> HashTable k v
-erase (HashTable arr size nowElements) key = HashTable ((take idHash arr) ++ ([filter (\(k,v) -> k /= key) (arr !! idHash)]) ++ (drop (idHash + 1) arr)) size (nowElements - 1)
-                                                 where idHash = fromIntegral (hash (show key) size)
+erase (HashTable arr size nowElements) key = HashTable (a ++ ([filter (\(k,v) -> k /= key) (arr !! idHash)]) ++ b) size (nowElements - 1) where
+                                         idHash = fromIntegral (hash (show key) size)
+                                         time' = splitAt idHash arr
+                                         a = fst time'
+                                         b = drop 1 (snd time')
 
 contains :: (Show k, Eq k) => HashTable k v -> k -> Bool
 --fst берет первый элемент из пары, вида (a,b) -> a
@@ -52,17 +59,17 @@ contains (HashTable arr size nowElements) key = elem key [k|(k,v) <- arr !! idHa
                                                                      idHash = fromIntegral (hash (show key) size)
 
 at :: (Show k, Eq k) => HashTable k v -> k -> Maybe v
-at (HashTable arr size nowElements) key = if (contains (HashTable arr size nowElements) key == True) then Just vay else Nothing where 
+at (HashTable arr size nowElements) key = lookup key (arr !! idHash)  where 
                                                      idHash = fromIntegral (hash (show key) size) 
                                                      --snd берет второй элемент из пары, вида (a,b) -> b
-                                                     vay = snd((filter (\(k,v) -> k == key) (arr !! idHash)) !! 0)
+													 --lookup ищет в кортеже, где есть пары, вида (a,b), елемент key == a и выводит (Maybe b)
 
---проверяет, есть ли в нем сейчас элементы
+--проверяет, есть ли в нем сейчас элементы (нет = true, да = false)
 empty :: (Show k, Eq k) => HashTable k v -> Bool
 empty (HashTable _ _ nowElements) = nowElements == 0
 
 size ::(Show k, Eq k) => HashTable k v -> Integer
-size (HashTable _ size _) = size
+size (HashTable _ _ nowElements) = nowElements
 
 b = defaultHashTable 2
 c = insert b "Nikita" 2001
