@@ -5,15 +5,8 @@ import qualified Data.ByteString.Lazy.UTF8 as BLU --библа, которая �
 import Control.Concurrent
 import Control.Monad
 import Control.DeepSeq
+import System.IO
 
-
---jop =  ['0'..'9'] ++ ['A'..'Z'] ++ ['a'..'z']
---taskList = passwordList jop 2
-
---beginState len charList = replicate len charList
---pw = map head (beginState 2 jop)
---nextState ((_:[]):xs) = jop : nextState xs
---nextState ((_:ys):xs) = ys : xs
 
 passwordList :: String -> Int -> [String] --создание паролей длины len (все комбинации)
 passwordList charList len = stream beginState
@@ -50,7 +43,7 @@ workerLoop taskQueue resultQueue charList pwLen hashList = do
 
 mainLoop :: MVar [ [String] ] -> Int -> Int -> IO Int
 mainLoop _ 0 _ = return 0  --если нет алфавита, то досвидания
-mainLoop _ taskNumber 0 = return taskNumber --если нет алфавита, то досвидания
+mainLoop _ taskNumber 0 = return taskNumber --если нет алфавита, то досвидания (вернет число не найденных паролей)
 mainLoop resultQueue count taskNumber  = do
   results <- (modifyMVar resultQueue (\q -> return ([], q)))
   case results of
@@ -66,26 +59,25 @@ mainLoop resultQueue count taskNumber  = do
 main :: IO ()
 main = do
       let hashList = [
-            -- 1
-            "c4ca4238a0b923820dcc509a6f75849b",
+            -- 1111
+            "b59c67bf196a4758191e42f76670ceba",
             -- r2d2
             "3e0fd1ad8efb39d90b8cd3b04a6c94f1"
             ]
-          pwLen = 3 --длина пароля
+          pwLen = 4 --длина пароля
           chunkLen = 2 -- длина префикса
           charList = ['0'..'9'] ++ ['A'..'Z'] ++ ['a'..'z']
           taskList = passwordList charList chunkLen --создаст кучу различных комбнаций паролей длины chunkLen
           taskNumber = length taskList --выдаст количество этих паролей
+
       workerNumber <- getNumCapabilities --возращает число ядер (заданных при запуске -N(X))
       --программа использует две очереди
       --newMVar - что-то вроде создания новой переменно, разделяемой несколькими потоками
       taskQueue <- newMVar taskList --создаем тип [String] (taskList - набор всех паролей длины chunkLen)
       resultQueue <- newMVar [] -- ещё один тип, [[String]] - сюда помещаются те строки, которые мы хотим вывести на экран
+
       workerNumber `replicateM_` forkIO (workerLoop taskQueue resultQueue charList pwLen hashList) --выполняет действие workerNumber раз, отбрасывая результат
-      --workerNumber `replicateM_` forkIO (workerLoop taskQueue resultQueue charList 2 hashList)
-      --workerNumber `replicateM_` forkIO (workerLoop taskQueue resultQueue charList 3 hashList)
-      --
       --workNumber - число параллельно запущенных процессов forkIO
-      num <- mainLoop resultQueue (length hashList) taskNumber
+      num <- mainLoop resultQueue (length hashList) taskNumber --вернет число не найденных паролей
       writeFile "output.txt" (show (num))
       return()
