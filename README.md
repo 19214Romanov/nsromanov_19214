@@ -3,4 +3,4 @@
 
 Рекомендация к запуску: запускать через файл launch(PROJ).bat
 
-Как компилировать: ghc PROJ1.hs -threaded -eventlog
+Как собирать: ghc PROJ1.hs -threaded -eventlog
