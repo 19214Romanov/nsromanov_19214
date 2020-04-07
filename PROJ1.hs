@@ -48,7 +48,6 @@ mainLoop resultQueue count taskNumber  = do
   results <- (modifyMVar resultQueue (\q -> return ([], q)))
   case results of
     [] -> do
-      threadDelay 100000 -- 100 ms ожидание ответа от ядер
       mainLoop resultQueue count taskNumber
     _ -> do
       mapM_ (mapM_ putStrLn) results --вывод (в контексте монады с пропущенным выходным значением map)
@@ -62,12 +61,16 @@ main = do
             -- 1111
             "b59c67bf196a4758191e42f76670ceba",
             -- r2d2
-            "3e0fd1ad8efb39d90b8cd3b04a6c94f1"
+            "3e0fd1ad8efb39d90b8cd3b04a6c94f1",
+            -- ones
+            "50a1e8d0ea071aca23f99488fd969483",
+            -- 123
+            "202cb962ac59075b964b07152d234b70"
             ]
           pwLen = 4 --длина пароля
           chunkLen = 2 -- длина префикса
           charList = ['0'..'9'] ++ ['A'..'Z'] ++ ['a'..'z']
-          taskList = passwordList charList chunkLen --создаст кучу различных комбнаций паролей длины chunkLen
+          taskList = passwordList charList chunkLen --создаст кучу различных комбнаций паролей длины
           taskNumber = length taskList --выдаст количество этих паролей
 
       workerNumber <- getNumCapabilities --возращает число ядер (заданных при запуске -N(X))
@@ -80,4 +83,6 @@ main = do
       --workNumber - число параллельно запущенных процессов forkIO
       num <- mainLoop resultQueue (length hashList) taskNumber --вернет число не найденных паролей
       writeFile "output.txt" (show (num))
+      putStrLn "..."
+      time <- getChar
       return()
