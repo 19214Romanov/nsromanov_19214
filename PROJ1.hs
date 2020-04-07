@@ -38,7 +38,7 @@ workerLoop taskQueue resultQueue charList pwLen hashList = do
           pwHashList = [(pw, hash pw) | pw <- pwList] --делаю такой список, вида (пароль, хеш)
           rslt = [pw ++ ":" ++ h | (pw,h) <- pwHashList,  h `elem` hashList] --если хеш равен тому, что валяется в начально хеш листе, то записываю такой хеш и его пароль в resultat
       rslt `deepseq` modifyMVar_ resultQueue (\q -> return $ rslt:q)
-      --deepseq (полностью просчитает первый аргумент и только потом будет исполнять второй)
+      --deepseq (полностью просчитает первый аргумент (до тех пор, пока не закроет все undefinedы) и только потом переходит к след действию)
       workerLoop taskQueue resultQueue charList pwLen hashList
 
 mainLoop :: MVar [ [String] ] -> Int -> Int -> IO Int
@@ -57,21 +57,12 @@ mainLoop resultQueue count taskNumber  = do
 
 main :: IO ()
 main = do
-      let hashList = [
-            -- 1111
-            "b59c67bf196a4758191e42f76670ceba",
-            -- r2d2
-            "3e0fd1ad8efb39d90b8cd3b04a6c94f1",
-            -- ones
-            "50a1e8d0ea071aca23f99488fd969483",
-            -- 123
-            "202cb962ac59075b964b07152d234b70"
-            ]
-          pwLen = 4 --длина пароля
+      let pwLen = 4 --длина пароля
           chunkLen = 2 -- длина префикса
           charList = ['0'..'9'] ++ ['A'..'Z'] ++ ['a'..'z']
           taskList = passwordList charList chunkLen --создаст кучу различных комбнаций паролей длины
           taskNumber = length taskList --выдаст количество этих паролей
+          hashh con = lines con
 
       workerNumber <- getNumCapabilities --возращает число ядер (заданных при запуске -N(X))
       --программа использует две очереди
@@ -79,9 +70,15 @@ main = do
       taskQueue <- newMVar taskList --создаем тип [String] (taskList - набор всех паролей длины chunkLen)
       resultQueue <- newMVar [] -- ещё один тип, [[String]] - сюда помещаются те строки, которые мы хотим вывести на экран
 
-      workerNumber `replicateM_` forkIO (workerLoop taskQueue resultQueue charList pwLen hashList) --выполняет действие workerNumber раз, отбрасывая результат
+      hFile <- openFile "input.txt" ReadMode
+      content <- hGetContents hFile
+
+      workerNumber `replicateM_` forkIO (workerLoop taskQueue resultQueue charList pwLen (hashh content)) --выполняет действие workerNumber раз, отбрасывая результат
       --workNumber - число параллельно запущенных процессов forkIO
-      num <- mainLoop resultQueue (length hashList) taskNumber --вернет число не найденных паролей
+      num <- mainLoop resultQueue (length (hashh content)) taskNumber --вернет число не найденных паролей
+
+      hClose hFile
+
       writeFile "output.txt" (show (num))
       putStrLn "..."
       time <- getChar
