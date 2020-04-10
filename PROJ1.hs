@@ -41,7 +41,7 @@ main :: IO ()
 main = do
       let hashh context = lines context
           alphabet = ['0'..'9'] ++ ['a'..'z'] ++ ['A'..'Z']
-          allPasswords = mapM (const alphabet) [1..1] ++ mapM (const alphabet) [1..2]  ++ mapM (const alphabet) [1..3]  ++ mapM (const alphabet) [1..4]  ++ mapM (const alphabet) [1..5]
+          allPasswords = mapM (const alphabet) [()] ++ mapM (const alphabet) [(),()]  ++ mapM (const alphabet) [(),(),()]  ++ mapM (const alphabet) [(),(),(),()]  ++ mapM (const alphabet) [(),(),(),(),()]
 
       hFile <- openFile "input.txt" ReadMode
       contentFromFile <- hGetContents hFile
