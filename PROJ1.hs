@@ -1,85 +1,57 @@
-import Data.Word
-import Text.Printf
-import qualified Data.Digest.Pure.MD5 as MD5 --библа, которая генерит hash md-5
-import qualified Data.ByteString.Lazy.UTF8 as BLU --библа, которая конвертит String в ByteString
+import qualified Data.Digest.Pure.MD5 as MD5
+import qualified Data.ByteString.Lazy.UTF8 as BLU
 import Control.Concurrent
 import Control.Monad
-import Control.DeepSeq
 import System.IO
 
+res allHash tasker = filter (\x ->(hash x) `elem` allHash)  tasker
 
-passwordList :: String -> Int -> [String] --создание паролей длины len (все комбинации)
-passwordList charList len = stream beginState
-  where
-    beginState = replicate len charList --список с несколькими алфавитами (len штук)
-    endState = replicate len [ last charList ] --последний пароль (zz)
-    nextState ((_:[]):xs) = charList : nextState xs --когда символы в одном наборе кончились, добавляем туда полный начальный набор, забирая из след списка первый символ
-    nextState ((_:ys):xs) = ys : xs --"проглатываем" головной символ, если он есть
-    nextState x = error ( "nextState " ++ show x)
-    stream st = --"поток" создающий список всех паролей
-      let pw = map head st in
-      if st == endState then [ pw ]
-                        else pw : stream (nextState st)
-
-hash :: String -> String --функция получает пароль, генерит от него хеш и возвращает хеш в представлении типа String
+hash :: String -> String
 hash = show.(MD5.md5).(BLU.fromString)
 
-workerLoop :: MVar [String] -> MVar [ [String] ] -> String -> Int ->[String] -> IO ()
-workerLoop taskQueue resultQueue charList pwLen hashList = do
-   --обертка, которая безопасно меняет полученный MVar и еще вдобавок возвращает значение в maybeTask
+workerLoop :: MVar [String] -> MVar [String] ->[String] -> MVar Int -> Int -> IO ()
+workerLoop taskQueue resultQueue hashList countOfTask  0 = do
+  putStrLn "!!!one core completed work!!!"
+  return ()
+workerLoop taskQueue resultQueue hashList countOfTask cou =  do
   maybeTask <- (modifyMVar taskQueue  (\q -> return $ case q of
                                                                                                     [] -> ([], Nothing)
-                                                                                                    (x:xs) -> (xs, Just x)))
+                                                                                                    xs -> (drop 1 xs, Just (take 1 xs)))) --колебания: 1 - 16 сек 100+ 10 сек
+                                                                                                    --также, чем больше, тем больше съест оперативы
+                                                                                                    --при слишком малом числе тратим время на рекурсивный вызов и проверки кейсов
+                                                                                                    --при большом числе больше охват, но и дольше время выполнения (250000 - 400МБ оперативы)
   case maybeTask of
-    Nothing -> return ()
+    Nothing -> do
+      let str = "Can't found something... =("
+      putStrLn str
+      return ()
     Just task -> do
-      let postfixList = passwordList charList (pwLen - length task) --генерит оставшуюся часть паролей
-          pwList = map (task ++) postfixList --делаю список паролей (полных)
-          pwHashList = [(pw, hash pw) | pw <- pwList] --делаю такой список, вида (пароль, хеш)
-          rslt = [pw ++ ":" ++ h | (pw,h) <- pwHashList,  h `elem` hashList] --если хеш равен тому, что валяется в начально хеш листе, то записываю такой хеш и его пароль в resultat
-      rslt `deepseq` modifyMVar_ resultQueue (\q -> return $ rslt:q)
-      --deepseq (полностью просчитает первый аргумент (до тех пор, пока не закроет все undefinedы) и только потом переходит к след действию)
-      workerLoop taskQueue resultQueue charList pwLen hashList
-
-mainLoop :: MVar [ [String] ] -> Int -> Int -> IO Int
-mainLoop _ 0 _ = return 0  --если нет алфавита, то досвидания
-mainLoop _ taskNumber 0 = return taskNumber --если нет алфавита, то досвидания (вернет число не найденных паролей)
-mainLoop resultQueue count taskNumber  = do
-  results <- (modifyMVar resultQueue (\q -> return ([], q)))
-  case results of
-    [] -> do
-      mainLoop resultQueue count taskNumber
-    _ -> do
-      mapM_ (mapM_ putStrLn) results --вывод (в контексте монады с пропущенным выходным значением map)
-      ku <- filterM (\x -> if length x > 0 then return True else return False) results
-      mainLoop resultQueue (count - length ku) (taskNumber - length results)
-
+      let resus = res hashList task
+      case resus of
+        [] -> do
+          trya <- readMVar countOfTask
+          workerLoop taskQueue resultQueue hashList countOfTask trya
+        smth -> do
+          putStrLn ("Your password is: "++(show smth))
+          modifyMVar_ countOfTask (\q -> return $ q-length(smth))
+          trya <- readMVar countOfTask
+          workerLoop taskQueue resultQueue hashList countOfTask (trya)
 
 main :: IO ()
 main = do
-      let pwLen = 4 --длина пароля
-          chunkLen = 2 -- длина префикса
-          charList = ['0'..'9'] ++ ['A'..'Z'] ++ ['a'..'z']
-          taskList = passwordList charList chunkLen --создаст кучу различных комбнаций паролей длины
-          taskNumber = length taskList --выдаст количество этих паролей
-          hashh con = lines con
-
-      workerNumber <- getNumCapabilities --возращает число ядер (заданных при запуске -N(X))
-      --программа использует две очереди
-      --newMVar - что-то вроде создания новой переменно, разделяемой несколькими потоками
-      taskQueue <- newMVar taskList --создаем тип [String] (taskList - набор всех паролей длины chunkLen)
-      resultQueue <- newMVar [] -- ещё один тип, [[String]] - сюда помещаются те строки, которые мы хотим вывести на экран
+      let hashh context = lines context
+          alphabet = ['0'..'9'] ++ ['a'..'z'] ++ ['A'..'Z']
+          allPasswords = mapM (const alphabet) [1..1] ++ mapM (const alphabet) [1..2]  ++ mapM (const alphabet) [1..3]  ++ mapM (const alphabet) [1..4]  ++ mapM (const alphabet) [1..5]
 
       hFile <- openFile "input.txt" ReadMode
-      content <- hGetContents hFile
-
-      workerNumber `replicateM_` forkIO (workerLoop taskQueue resultQueue charList pwLen (hashh content)) --выполняет действие workerNumber раз, отбрасывая результат
-      --workNumber - число параллельно запущенных процессов forkIO
-      num <- mainLoop resultQueue (length (hashh content)) taskNumber --вернет число не найденных паролей
-
-      hClose hFile
-
-      writeFile "output.txt" (show (num))
-      putStrLn "..."
+      contentFromFile <- hGetContents hFile
+      workerNumber <- getNumCapabilities
+      putStrLn ("!WARNING! Please wait the end of " ++ (show workerNumber) ++ " processes !WARNING!")
+      taskQueue <- newMVar allPasswords
+      resultQueue <- newMVar []
+      countOfTaskMVAR <- newMVar (length (hashh contentFromFile))
+      countOfTask <- readMVar countOfTaskMVAR
+      workerNumber `replicateM_` forkIO (workerLoop taskQueue resultQueue (hashh contentFromFile)  countOfTaskMVAR countOfTask)
       time <- getChar
+      hClose hFile
       return()
